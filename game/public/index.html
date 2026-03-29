@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Build & Deploy // SWE Collective</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#040507;--surface:#080b10;--card:#0a0e18;--card2:#0e1320;
+  --border:#0f2040;--border2:#1a3560;
+  --green:#00ff88;--green2:rgba(0,255,136,0.08);--green3:rgba(0,255,136,0.18);
+  --cyan:#00e5ff;--cyan2:rgba(0,229,255,0.08);
+  --amber:#ffb800;--amber2:rgba(255,184,0,0.1);
+  --red:#ff4466;--red2:rgba(255,68,102,0.1);
+  --text:#b0cce0;--text2:#4a7090;--text3:#1e3850;
+  --mono:'Share Tech Mono',monospace;--display:'Orbitron',sans-serif;--body:'Rajdhani',sans-serif;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;overflow-x:hidden;cursor:crosshair}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,255,136,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,136,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.12) 3px,rgba(0,0,0,0.12) 4px);pointer-events:none;z-index:9999}
+@keyframes flicker{0%,100%{opacity:1}94%{opacity:1}95%{opacity:0.92}96%{opacity:1}98%{opacity:0.95}99%{opacity:1}}
+#app{animation:flicker 10s infinite;position:relative;z-index:1}
+.wrap{max-width:720px;margin:0 auto;padding:2rem 1.25rem 5rem}
+.screen{display:none}.screen.active{display:block}
+@keyframes termBoot{from{clip-path:inset(50% 0 50% 0);opacity:0}to{clip-path:inset(0% 0 0% 0);opacity:1}}
+.screen.active{animation:termBoot 0.35s cubic-bezier(0.16,1,0.3,1) both}
+.term-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--card2);border:1px solid var(--border2);border-radius:4px 4px 0 0}
+.term-dots{display:flex;gap:6px}.term-dot{width:10px;height:10px;border-radius:50%}
+.td-r{background:#ff5f57}.td-y{background:#ffbd2e}.td-g{background:#28ca41}
+.term-title{font-family:var(--display);font-size:9px;letter-spacing:0.15em;color:var(--green)}
+.term-status{font-size:10px;color:var(--text3);letter-spacing:0.1em}
+.boot-screen{background:var(--card);border:1px solid var(--border2);border-top:none;border-radius:0 0 4px 4px;padding:2.5rem 2rem;min-height:500px;position:relative;overflow:hidden}
+.boot-screen::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--green),transparent);animation:sweep 4s linear infinite}
+@keyframes sweep{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.boot-log{font-size:11px;color:var(--text2);line-height:2;margin-bottom:2rem;letter-spacing:0.05em}
+.boot-log .ok{color:var(--green)}.boot-log .warn{color:var(--amber)}.boot-log .err{color:var(--red)}.boot-log .dim{color:var(--text3)}
+.logo-wrap{text-align:center;margin:1.5rem 0 2rem}
+.logo-main{font-family:var(--display);font-weight:900;font-size:clamp(28px,7vw,52px);color:var(--green);letter-spacing:0.08em;text-shadow:0 0 30px rgba(0,255,136,0.4),0 0 60px rgba(0,255,136,0.15);line-height:1.1}
+.logo-sub{font-family:var(--display);font-weight:400;font-size:clamp(11px,2.5vw,14px);color:var(--cyan);letter-spacing:0.3em;margin-top:6px;text-shadow:0 0 20px rgba(0,229,255,0.3)}
+.logo-ver{font-size:10px;color:var(--text3);letter-spacing:0.2em;margin-top:4px}
+.mission-block{background:var(--card2);border:1px solid var(--border2);border-left:3px solid var(--green);border-radius:0 4px 4px 0;padding:14px 18px;margin-bottom:1.5rem;font-family:var(--body);font-size:14px;color:var(--text);line-height:1.8}
+.mission-block::before{content:'// MISSION BRIEF';display:block;font-size:9px;color:var(--green);letter-spacing:0.2em;margin-bottom:8px;font-family:var(--mono)}
+.field-label{font-size:10px;color:var(--cyan);letter-spacing:0.15em;margin-bottom:6px;display:block}
+input[type="text"]{width:100%;background:#020406;border:1px solid var(--border2);border-radius:3px;padding:12px 16px;font-size:14px;font-family:var(--mono);color:var(--green);outline:none;caret-color:var(--green);letter-spacing:0.08em;transition:border-color 0.2s,box-shadow 0.2s}
+input[type="text"]:focus{border-color:var(--green);box-shadow:0 0 0 2px rgba(0,255,136,0.12),inset 0 0 15px rgba(0,255,136,0.03)}
+input[type="text"]::placeholder{color:var(--text3)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 24px;border-radius:3px;font-size:11px;font-family:var(--mono);letter-spacing:0.15em;text-transform:uppercase;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--text2);transition:all 0.15s;position:relative;overflow:hidden}
+.btn::after{content:'';position:absolute;inset:0;background:var(--green2);opacity:0;transition:opacity 0.2s}
+.btn:hover::after{opacity:1}.btn:hover{border-color:var(--green);color:var(--green)}.btn:active{transform:scale(0.97)}
+.btn-primary{border-color:var(--green);color:var(--green);background:var(--green2)}
+.btn-primary:hover{background:var(--green3);box-shadow:0 0 20px rgba(0,255,136,0.2)}
+.btn:disabled{opacity:0.4;cursor:not-allowed;pointer-events:none}
+.btn-full{width:100%;justify-content:center;margin-top:12px}
+.hud{background:var(--card2);border:1px solid var(--border2);border-radius:4px;padding:10px 16px;margin-bottom:1rem;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:1rem;position:relative;overflow:hidden}
+.hud::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--green),transparent);opacity:0.3}
+.hud-left{font-size:10px;color:var(--text2);letter-spacing:0.08em}.hud-left span{color:var(--green);font-size:12px}
+.hud-center{text-align:center}
+.hud-timer{font-family:var(--display);font-size:20px;font-weight:600;color:var(--green);letter-spacing:0.1em;text-shadow:0 0 15px rgba(0,255,136,0.5)}
+.hud-right{text-align:right;font-size:10px;color:var(--text3);letter-spacing:0.08em}
+.hud-stage-pill{display:inline-block;background:var(--amber2);border:1px solid rgba(255,184,0,0.25);color:var(--amber);font-size:10px;letter-spacing:0.1em;padding:2px 10px;border-radius:2px}
+.progress-wrap{margin-bottom:1.25rem}
+.progress-labels{display:flex;justify-content:space-between;font-size:9px;color:var(--text3);letter-spacing:0.1em;margin-bottom:6px}
+.progress-track{height:3px;background:var(--border);border-radius:999px;overflow:hidden;position:relative}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--cyan));border-radius:999px;transition:width 0.6s cubic-bezier(0.16,1,0.3,1);position:relative}
+.progress-fill::after{content:'';position:absolute;right:0;top:-2px;width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+.stage-track{display:flex;align-items:flex-start;margin-bottom:1.5rem;gap:0}
+.stage-seg{flex:1;display:flex;flex-direction:column;align-items:center;position:relative}
+.stage-seg:not(:last-child)::after{content:'···';position:absolute;top:14px;left:55%;width:90%;font-size:10px;color:var(--text3);letter-spacing:0.3em;z-index:0;overflow:hidden}
+.stage-seg.done:not(:last-child)::after{color:var(--green);text-shadow:0 0 6px var(--green)}
+.stage-node{width:30px;height:30px;border-radius:3px;border:1px solid var(--border2);background:var(--card);display:flex;align-items:center;justify-content:center;font-size:12px;position:relative;z-index:1;transition:all 0.3s}
+.stage-seg.done .stage-node{border-color:var(--green);background:var(--green2);box-shadow:0 0 10px rgba(0,255,136,0.2)}
+.stage-seg.active .stage-node{border-color:var(--amber);background:var(--amber2);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 10px rgba(255,184,0,0.3)}50%{box-shadow:0 0 20px rgba(255,184,0,0.6)}}
+.stage-lbl{font-size:9px;color:var(--text3);letter-spacing:0.06em;margin-top:6px;text-align:center;max-width:75px;line-height:1.4;text-transform:uppercase}
+.stage-seg.active .stage-lbl{color:var(--amber)}.stage-seg.done .stage-lbl{color:var(--green)}
+.puzzle-card{background:var(--card);border:1px solid var(--border2);border-radius:4px;margin-bottom:1rem;position:relative;overflow:hidden}
+.puzzle-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--green),var(--cyan),var(--green))}
+.card-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--card2);border-bottom:1px solid var(--border);font-size:10px;letter-spacing:0.1em}
+.card-loc{color:var(--amber);background:var(--amber2);border:1px solid rgba(255,184,0,0.2);padding:2px 10px;border-radius:2px}
+.card-file{color:var(--text3)}
+.card-body{padding:1.5rem}
+.task-header{display:flex;align-items:baseline;gap:12px;margin-bottom:1rem}
+.task-num{font-family:var(--display);font-size:11px;color:var(--green);letter-spacing:0.15em}
+.task-title{font-family:var(--display);font-weight:600;font-size:18px;color:#e8f8f0;letter-spacing:0.05em;text-transform:uppercase;min-height:24px}
+.context-block{background:#020406;border:1px solid var(--border);border-left:2px solid var(--cyan);border-radius:0 3px 3px 0;padding:12px 16px;margin-bottom:1.25rem;position:relative}
+.context-block::before{content:'> SYSTEM LOG';font-size:9px;color:var(--cyan);letter-spacing:0.15em;display:block;margin-bottom:8px;opacity:0.7}
+.context-block p{font-family:var(--body);font-size:13px;color:var(--text2);line-height:1.8}
+.challenge-block{background:rgba(0,255,136,0.02);border:1px solid rgba(0,255,136,0.12);border-radius:3px;padding:14px 16px;margin-bottom:1.25rem;position:relative}
+.challenge-block::before{content:'> CHALLENGE';font-size:9px;color:var(--green);letter-spacing:0.15em;display:block;margin-bottom:10px;opacity:0.7}
+.challenge-block pre{font-family:var(--mono);font-size:13px;color:var(--text);line-height:1.9;white-space:pre-wrap;word-break:break-word}
+.input-row{display:flex;gap:8px;margin-bottom:10px;align-items:center}
+.input-row input{flex:1}
+.input-prefix{font-size:13px;color:var(--green);white-space:nowrap}
+.feedback{font-size:11px;padding:10px 14px;border-radius:3px;letter-spacing:0.06em;display:none;border-left:3px solid;font-family:var(--mono)}
+.feedback.wrong{background:var(--red2);color:var(--red);border-color:var(--red);animation:shake 0.4s ease}
+.feedback.right{background:var(--green2);color:var(--green);border-color:var(--green)}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.particle{position:fixed;pointer-events:none;border-radius:50%;animation:pburst 0.8s ease-out forwards;z-index:9990}
+@keyframes pburst{to{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0}}
+.chat-card{background:var(--card);border:1px solid var(--border2);border-radius:4px;overflow:hidden;position:relative}
+.chat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);opacity:0.5}
+.chat-hdr{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--card2);border-bottom:1px solid var(--border)}
+.chat-indicator{display:flex;gap:4px;align-items:center}
+.chat-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 5px var(--green);animation:blink 2s infinite}
+.chat-dot2{width:6px;height:6px;border-radius:50%;background:var(--green);opacity:0.5;animation:blink 2s 0.4s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+.chat-hdr-txt{font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text2)}
+.chat-hdr-sub{font-size:9px;color:var(--text3);margin-left:auto;letter-spacing:0.05em}
+.chat-msgs{height:190px;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.msg{max-width:88%;font-size:12px;line-height:1.6;padding:9px 13px;border-radius:3px;letter-spacing:0.03em}
+.msg.bot{background:var(--card2);color:var(--text2);align-self:flex-start;border-left:2px solid var(--cyan)}
+.msg.bot .sender{font-size:9px;color:var(--cyan);letter-spacing:0.1em;display:block;margin-bottom:4px}
+.msg.user{background:rgba(0,255,136,0.07);color:var(--green);align-self:flex-end;border:1px solid rgba(0,255,136,0.15)}
+.msg.thinking{color:var(--text3);font-style:italic;animation:tp 1.2s ease-in-out infinite}
+@keyframes tp{0%,100%{opacity:0.4}50%{opacity:1}}
+.chat-row{display:flex;border-top:1px solid var(--border)}
+.chat-row input{flex:1;border:none;border-radius:0;background:var(--card);font-size:12px;padding:10px 14px;letter-spacing:0.05em;color:var(--green)}
+.chat-row input:focus{box-shadow:none;border-color:transparent}
+.chat-send{border:none;background:none;color:var(--cyan);font-size:10px;letter-spacing:0.12em;text-transform:uppercase;padding:0 16px;cursor:pointer;font-family:var(--mono);transition:color 0.15s}
+.chat-send:hover{color:var(--green)}
+.win-wrap{background:var(--card);border:1px solid var(--green);border-radius:4px;padding:3rem 2rem;text-align:center;position:relative;overflow:hidden;box-shadow:0 0 40px rgba(0,255,136,0.1)}
+.win-wrap::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent,transparent 40px,rgba(0,255,136,0.015) 40px,rgba(0,255,136,0.015) 41px),repeating-linear-gradient(0deg,transparent,transparent 40px,rgba(0,255,136,0.015) 40px,rgba(0,255,136,0.015) 41px);pointer-events:none}
+.win-badge{display:inline-block;font-family:var(--display);font-weight:700;font-size:10px;letter-spacing:0.3em;color:var(--green);border:2px solid var(--green);padding:5px 20px;margin-bottom:2rem;animation:wbadge 2s ease-in-out infinite}
+@keyframes wbadge{0%,100%{box-shadow:0 0 15px rgba(0,255,136,0.2)}50%{box-shadow:0 0 35px rgba(0,255,136,0.45)}}
+.win-title{font-family:var(--display);font-weight:900;font-size:clamp(24px,5vw,40px);color:var(--green);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;text-shadow:0 0 20px rgba(0,255,136,0.4)}
+.win-handle{font-family:var(--display);font-size:clamp(14px,3vw,20px);color:var(--text2);letter-spacing:0.15em;margin-bottom:1.5rem}
+.win-stats{display:flex;justify-content:center;gap:3rem;margin-bottom:1.5rem}
+.win-stat-val{font-family:var(--display);font-weight:700;font-size:26px;color:var(--cyan);text-shadow:0 0 12px rgba(0,229,255,0.4)}
+.win-stat-lbl{font-size:9px;letter-spacing:0.15em;color:var(--text3);text-transform:uppercase;margin-top:2px}
+.win-msg{font-family:var(--body);font-size:14px;color:var(--text2);line-height:1.8;max-width:420px;margin:0 auto 2rem}
+.tw::after{content:'_';animation:twc 0.8s step-end infinite;color:var(--green)}
+@keyframes twc{0%,100%{opacity:1}50%{opacity:0}}
+.bracket{position:relative}
+.bracket::before,.bracket::after{content:'';position:absolute;width:10px;height:10px;border-color:var(--green);border-style:solid;opacity:0.25}
+.bracket::before{top:0;left:0;border-width:1px 0 0 1px}
+.bracket::after{bottom:0;right:0;border-width:0 1px 1px 0}
+@media(max-width:500px){.stage-lbl{display:none}.card-body{padding:1rem}.win-stats{gap:1.5rem}}
+</style>
+</head>
+<body>
+<div id="app">
+<div class="wrap">
+
+  <!-- ════════════════════════════════════════
+       ▼▼▼  STAGE CONTENT — EDIT HERE  ▼▼▼
+       ════════════════════════════════════════
+  Safe to edit — NO answers are stored here.
+  Answers live only in server.js on the server.
+
+  Fields:
+    icon         → emoji in stage tracker
+    title        → short name
+    location     → physical campus location
+    context      → "system log" narrative
+    challenge    → puzzle text (\n = line break)
+    hint_context → private notes for AI hint bot
+
+  ADD: copy a block, paste inside array
+  REMOVE: delete the { ... } block
+  REORDER: move blocks around
+  ════════════════════════════════════════════ -->
+  <script>
+  const STAGES = [
+    {
+      icon: "📚",
+      title: "Library",
+      location: "Campus Library — Shelf Bays",
+      context: "The Collective's first checkpoint is buried in the library's cataloguing system. Senior devs love hiding things in plain sight — places everyone walks past but never actually reads. Your access key is encoded in the shelf bay system.",
+      challenge: `TASK_001 // LOCATE THE NODE
+
+The Collective stores its documentation under Library of
+Congress call number:  HF 5718.22
+
+Navigate the library shelf bay signs to find which bay
+this call number belongs to.
+
+Your answer = the bay label (e.g. "2B", "3A", etc.)`,
+      hint_context: "Stage 1 — Library. Call number HF 5718.22. Bay 3A covers HF 5718.22 – LB 1139.4 (Includes HF, I, J, K, L & LB). The answer is 3A."
+    },
+    {
+      icon: "🖨️",
+      title: "Lounge",
+      location: "Student Lounge — Print Station",
+      context: "Every dev collective needs infrastructure. The Collective's build server model number is disguised as the lounge printer — the one piece of hardware every student walks past without reading. Time to actually read it.",
+      challenge: `TASK_002 // IDENTIFY THE BUILD SERVER
+
+There is a printer in the public space near the Collective's HQ.
+It is the Collective's disguised build server.
+
+Find it. Read its model name carefully.
+
+Your answer = the 4-digit number in the model name.
+  Hint: brand starts with 'X', model contains "AltaLink C____"`,
+      hint_context: "Stage 2 — Lounge. The printer is a Xerox AltaLink C8045. The 4-digit number is 8045."
+    },
+    {
+      icon: "🚪",
+      title: "Club Room",
+      location: "Software Engineering Club Room",
+      context: "You've made it to HQ. The Collective's final access code is hidden here — but nothing in this room is what it seems. Senior members always said: 'The most important things are hidden behind what everyone sees every day.'",
+      challenge: `TASK_003 // RETRIEVE THE ACCESS CODE
+
+You're inside the Collective's HQ.
+
+The final access code is hidden behind the thing
+in this room that everyone looks at — but no one
+thinks to look behind.
+
+  Hint: It's on the wall. Something decorative
+        faces outward. The code faces inward.
+
+Enter the 4-digit code you find.`,
+      hint_context: "Stage 3 — Club Room. The code is on a note taped to the BACK of the poster on the wall."
+    }
+
+    /* ─── TEMPLATE: ADD A NEW STAGE ────────────
+    ,{
+      icon: "💻",
+      title: "Short Name",
+      location: "Physical Location",
+      context: "Narrative the player reads.",
+      challenge: `TASK_00X // TITLE\n\nPuzzle text here.`,
+      hint_context: "Solution explanation for the AI hint bot."
+    }
+    ─────────────────────────────────────────── */
+  ];
+
+  const CLUB_NAME = "SWE Collective";   // ← your club name
+  const TAGLINE   = "Access all areas. Ship everything.";
+
+  // ════════════════════════════════════════════
+  // ▼▼▼  SERVER URL — CHANGE THIS  ▼▼▼
+  // When running locally:   http://localhost:3000
+  // When deployed:          https://your-app.railway.app
+  // ════════════════════════════════════════════
+  const SERVER = 'http://localhost:3000';
+  // ════════════════════════════════════════════
+  </script>
+  <!-- ════════════════════════════════════════
+       ▲▲▲  END OF STAGE CONTENT  ▲▲▲
+       ════════════════════════════════════════ -->
+
+
+  <!-- SCREEN: Boot / Intro -->
+  <div id="screen-intro" class="screen active">
+    <div class="term-bar">
+      <div class="term-dots"><div class="term-dot td-r"></div><div class="term-dot td-y"></div><div class="term-dot td-g"></div></div>
+      <div class="term-title">BUILD_AND_DEPLOY.exe</div>
+      <div class="term-status">v3.0.0-secure</div>
+    </div>
+    <div class="boot-screen bracket">
+      <div class="boot-log">
+        <div><span class="dim">[00:00:01]</span> Initializing secure environment...</div>
+        <div><span class="dim">[00:00:02]</span> Loading collective protocols... <span class="ok">OK</span></div>
+        <div><span class="dim">[00:00:03]</span> Connecting to answer verification server... <span class="ok" id="srv-status">CHECKING</span></div>
+        <div><span class="dim">[00:00:04]</span> Encrypting hint channels... <span class="ok">OK</span></div>
+        <div><span class="dim">[00:00:05]</span> Agent identity: <span class="warn">UNVERIFIED</span></div>
+        <div><span class="dim">[00:00:06]</span> <span class="err">ACTION REQUIRED:</span> Register agent handle to proceed.</div>
+      </div>
+      <div class="logo-wrap">
+        <div class="logo-main">BUILD &amp; DEPLOY</div>
+        <div class="logo-sub" id="logo-sub-text">// LOADING //</div>
+        <div class="logo-ver" id="logo-ver-text">STAGES: — / —</div>
+      </div>
+      <div class="mission-block">
+        You've been selected to join the most elite software engineering collective on campus. Three checkpoints stand between you and full membership. Each one is hidden somewhere on campus. Solve them. Ship it.
+      </div>
+      <label class="field-label" for="player-name">$ ENTER AGENT HANDLE _</label>
+      <input type="text" id="player-name" placeholder="your_handle" maxlength="24" autocomplete="off"/>
+      <button class="btn btn-primary btn-full" onclick="startGame()">$ ./begin_mission.sh ▶</button>
+    </div>
+  </div>
+
+  <!-- SCREEN: Game -->
+  <div id="screen-game" class="screen">
+    <div class="term-bar">
+      <div class="term-dots"><div class="term-dot td-r"></div><div class="term-dot td-y"></div><div class="term-dot td-g"></div></div>
+      <div class="term-title">MISSION_ACTIVE</div>
+      <div class="term-status" id="hud-agent-small"></div>
+    </div>
+    <div class="hud bracket">
+      <div class="hud-left">AGENT<br><span id="hud-name"></span></div>
+      <div class="hud-center"><div class="hud-timer" id="timer">00:00</div></div>
+      <div class="hud-right"><div class="hud-stage-pill" id="hud-pill"></div></div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-labels"><span>MISSION PROGRESS</span><span id="prog-pct">0%</span></div>
+      <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+    </div>
+    <div class="stage-track" id="stage-track"></div>
+    <div class="puzzle-card bracket">
+      <div class="card-topbar">
+        <span class="card-loc" id="card-loc"></span>
+        <span class="card-file" id="card-file"></span>
+      </div>
+      <div class="card-body">
+        <div class="task-header">
+          <span class="task-num" id="task-num"></span>
+          <span class="task-title tw" id="task-title"></span>
+        </div>
+        <div class="context-block"><p id="ctx-text"></p></div>
+        <div class="challenge-block"><pre id="challenge-text"></pre></div>
+        <div class="input-row">
+          <span class="input-prefix">$&gt;</span>
+          <input type="text" id="answer-input" placeholder="enter_answer" autocomplete="off"/>
+          <button class="btn btn-primary" id="submit-btn" onclick="checkAnswer()">RUN ▶</button>
+        </div>
+        <div class="feedback" id="feedback"></div>
+      </div>
+    </div>
+    <div class="chat-card bracket">
+      <div class="chat-hdr">
+        <div class="chat-indicator"><div class="chat-dot"></div><div class="chat-dot2"></div></div>
+        <span class="chat-hdr-txt">AI Pair Programmer</span>
+        <span class="chat-hdr-sub">hint system // online</span>
+      </div>
+      <div class="chat-msgs" id="chat-msgs"></div>
+      <div class="chat-row">
+        <input type="text" id="chat-input" placeholder="$ ask for a hint..." onkeydown="if(event.key==='Enter')sendHint()"/>
+        <button class="chat-send" onclick="sendHint()">SEND ▶</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN: Win -->
+  <div id="screen-win" class="screen">
+    <div class="term-bar">
+      <div class="term-dots"><div class="term-dot td-r"></div><div class="term-dot td-y"></div><div class="term-dot td-g"></div></div>
+      <div class="term-title">DEPLOY_SUCCESS</div>
+      <div class="term-status">EXIT 0</div>
+    </div>
+    <div class="win-wrap">
+      <div class="win-badge">ACCESS GRANTED // FULL MEMBER</div>
+      <div class="win-title">SHIPPED. 🚀</div>
+      <div class="win-handle" id="win-handle"></div>
+      <div class="win-stats">
+        <div class="win-stat"><div class="win-stat-val" id="win-time"></div><div class="win-stat-lbl">Time</div></div>
+        <div class="win-stat"><div class="win-stat-val" id="win-stages"></div><div class="win-stat-lbl">Stages</div></div>
+      </div>
+      <p class="win-msg">All checkpoints cleared. You've proven you can navigate real systems, read real hardware, and find what others miss. Welcome to the <span id="win-club"></span>.</p>
+      <button class="btn btn-primary" onclick="restartGame()">$ ./restart.sh</button>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+/* ─── State ── */
+let stage=0, player='', startTime=null, timerHnd=null, wrongs=0;
+
+/* ─── Init ── */
+document.getElementById('logo-sub-text').textContent = '// '+CLUB_NAME+' //';
+document.getElementById('logo-ver-text').textContent = 'STAGES: '+STAGES.length+' // '+TAGLINE;
+document.getElementById('player-name').addEventListener('keydown',e=>{if(e.key==='Enter')startGame()});
+
+// Ping server on load to confirm it's reachable
+fetch(SERVER+'/stages')
+  .then(r=>r.json())
+  .then(d=>{ document.getElementById('srv-status').textContent = d.count+'/'+d.count+' NODES VERIFIED'; })
+  .catch(()=>{ document.getElementById('srv-status').textContent = 'OFFLINE'; document.getElementById('srv-status').className='err'; });
+
+/* ─── Helpers ── */
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
+function fmt(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
+function elapsed(){return Math.floor((Date.now()-startTime)/1000)}
+
+function typewrite(el,text,speed=35){
+  el.textContent='';el.classList.add('tw');let i=0;
+  const iv=setInterval(()=>{if(i<text.length){el.textContent+=text[i++]}else{clearInterval(iv);el.classList.remove('tw')}},speed);
+}
+
+function burst(x,y,color='#00ff88'){
+  for(let i=0;i<20;i++){
+    const p=document.createElement('div');p.className='particle';
+    const ang=(i/20)*Math.PI*2,dist=35+Math.random()*65;
+    p.style.cssText=`left:${x}px;top:${y}px;width:${2+Math.random()*5}px;height:${2+Math.random()*5}px;background:${color};--dx:${Math.cos(ang)*dist}px;--dy:${Math.sin(ang)*dist}px;`;
+    document.body.appendChild(p);setTimeout(()=>p.remove(),900);
+  }
+}
+
+/* ─── Game flow ── */
+function startGame(){
+  const n=document.getElementById('player-name').value.trim();
+  if(!n){document.getElementById('player-name').focus();return}
+  player=n;stage=0;wrongs=0;startTime=Date.now();
+  clearInterval(timerHnd);
+  timerHnd=setInterval(()=>document.getElementById('timer').textContent=fmt(elapsed()),1000);
+  show('screen-game');renderStage();
+}
+
+function renderStage(){
+  const s=STAGES[stage];
+  const pct=Math.round((stage/STAGES.length)*100);
+  document.getElementById('hud-name').textContent=player.toLowerCase();
+  document.getElementById('hud-agent-small').textContent=player.toLowerCase();
+  document.getElementById('hud-pill').textContent='TASK '+String(stage+1).padStart(2,'0')+' / '+String(STAGES.length).padStart(2,'0');
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('prog-pct').textContent=pct+'%';
+  document.getElementById('card-loc').textContent=s.location;
+  document.getElementById('card-file').textContent='TASK_'+String(stage+1).padStart(3,'0')+'.sh';
+  document.getElementById('task-num').textContent='TASK_'+String(stage+1).padStart(3,'0');
+  document.getElementById('ctx-text').textContent=s.context;
+  document.getElementById('challenge-text').textContent=s.challenge;
+  document.getElementById('answer-input').value='';
+  document.getElementById('feedback').style.display='none';
+  wrongs=0;
+  typewrite(document.getElementById('task-title'),s.title.toUpperCase(),40);
+  buildTrack();resetChat();
+}
+
+function buildTrack(){
+  document.getElementById('stage-track').innerHTML=STAGES.map((s,i)=>{
+    let c='stage-seg';if(i<stage)c+=' done';if(i===stage)c+=' active';
+    return `<div class="${c}"><div class="stage-node">${i<stage?'✓':s.icon}</div><div class="stage-lbl">${s.title}</div></div>`;
+  }).join('');
+}
+
+/* ─────────────────────────────────────────────────
+   checkAnswer — posts to server, never checks
+   locally. The answer is never in this file.
+───────────────────────────────────────────────── */
+async function checkAnswer(){
+  const raw=document.getElementById('answer-input').value.trim();
+  if(!raw) return;
+  const fb=document.getElementById('feedback');
+  const btn=document.getElementById('submit-btn');
+
+  // Disable while waiting for server
+  btn.disabled=true;
+  btn.textContent='CHECKING...';
+  fb.style.display='none';
+
+  try {
+    const res  = await fetch(SERVER+'/check', {
+      method:  'POST',
+      headers: {'Content-Type':'application/json'},
+      body:    JSON.stringify({ stage, answer: raw })
+    });
+
+    if(res.status===429){
+      fb.className='feedback wrong';fb.style.display='block';
+      fb.textContent='✗ RATE LIMIT — too many attempts. Wait and retry.';
+      return;
+    }
+
+    const data = await res.json();
+
+    if(data.correct){
+      fb.className='feedback right';fb.style.display='block';
+      fb.textContent='✓ ACCEPTED — checkpoint cleared. Advancing...';
+      const r=btn.getBoundingClientRect();
+      burst(r.left+r.width/2,r.top+r.height/2,'#00ff88');
+      setTimeout(()=>{stage++;if(stage>=STAGES.length)finishGame();else renderStage()},1300);
+    } else {
+      wrongs++;
+      fb.className='feedback wrong';fb.style.display='block';
+      fb.textContent=wrongs>=3?'✗ REJECTED — query your pair programmer below.':'✗ REJECTED — re-examine the environment.';
+      const r=document.getElementById('answer-input').getBoundingClientRect();
+      burst(r.left+r.width/2,r.top+r.height/2,'#ff4466');
+    }
+  } catch(e){
+    fb.className='feedback wrong';fb.style.display='block';
+    fb.textContent='✗ SERVER UNREACHABLE — check your connection.';
+  } finally {
+    btn.disabled=false;
+    btn.textContent='RUN ▶';
+  }
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&document.getElementById('screen-game').classList.contains('active')&&document.activeElement===document.getElementById('answer-input'))
+    checkAnswer();
+});
+
+function finishGame(){
+  clearInterval(timerHnd);const secs=elapsed();
+  document.getElementById('win-handle').textContent='// '+player.toLowerCase()+' //';
+  document.getElementById('win-time').textContent=fmt(secs);
+  document.getElementById('win-stages').textContent=STAGES.length+'/'+STAGES.length;
+  document.getElementById('win-club').textContent=CLUB_NAME;
+  setTimeout(()=>{for(let i=0;i<8;i++)setTimeout(()=>burst(window.innerWidth*0.2+Math.random()*window.innerWidth*0.6,window.innerHeight*0.2+Math.random()*window.innerHeight*0.5,['#00ff88','#00e5ff','#ffb800'][Math.floor(Math.random()*3)]),i*100)},300);
+  show('screen-win');
+}
+
+function restartGame(){clearInterval(timerHnd);document.getElementById('player-name').value='';show('screen-intro')}
+
+/* ─── Chat ── */
+function resetChat(){
+  const box=document.getElementById('chat-msgs');box.innerHTML='';
+  const d=document.createElement('div');d.className='msg bot';
+  d.innerHTML=`<span class="sender">AI_PAIR_PROGRAMMER</span>Connected to ${STAGES[stage].title} node. Ask me for a hint if you're stuck.`;
+  box.appendChild(d);
+}
+function addMsg(role,text,sender=''){
+  const box=document.getElementById('chat-msgs');
+  const d=document.createElement('div');d.className='msg '+role;
+  if(sender)d.innerHTML=`<span class="sender">${sender}</span>${text}`;
+  else d.textContent=text;
+  box.appendChild(d);box.scrollTop=9999;return d;
+}
+
+async function sendHint(){
+  const inp=document.getElementById('chat-input');
+  const txt=inp.value.trim();if(!txt)return;
+  inp.value='';addMsg('user',txt);
+  const loader=addMsg('bot','','AI_PAIR_PROGRAMMER');
+  loader.innerHTML=`<span class="sender">AI_PAIR_PROGRAMMER</span><span class="thinking">// compiling hint...</span>`;
+  const s=STAGES[stage];
+  try{
+    // Calls our own server — Gemini API key never exposed to browser
+    const res=await fetch(SERVER+'/hint',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        stage,
+        message:       txt,
+        stageTitle:    s.title,
+        stageLocation: s.location,
+        hintContext:   s.hint_context
+      })
+    });
+    const data=await res.json();
+    loader.innerHTML=`<span class="sender">AI_PAIR_PROGRAMMER</span>${data.reply}`;
+  }catch(e){
+    loader.innerHTML=`<span class="sender">AI_PAIR_PROGRAMMER</span>// connection timeout. examine the environment.`;
+  }
+  document.getElementById('chat-msgs').scrollTop=9999;
+}
+</script>
+</body>
+</html>
