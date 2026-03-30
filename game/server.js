@@ -3,15 +3,17 @@
 // Install deps first: npm install express cors
 // ═══════════════════════════════════════════════
 
+require('dotenv').config();
+
 const express = require('express');
 const cors    = require('cors');
 const path    = require('path');
 
 // ══════════════════════════════════════════════
-// ▼▼▼  PUT YOUR GEMINI API KEY HERE  ▼▼▼
-// Get one free at: https://aistudio.google.com
+// API key is loaded from .env file — never
+// hardcode it here. Add to .gitignore too.
 // ══════════════════════════════════════════════
-const GEMINI_API_KEY = 'GEMINI_API_KEY_GOES_HERE';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 // ══════════════════════════════════════════════
 
 const app  = express();
@@ -37,7 +39,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const ANSWERS = {
   0: ['3a'],      // Stage 1 — Library: shelf bay
   1: ['8045'],    // Stage 2 — Lounge: printer model digits
-  2: ['1234'],    // Stage 3 — Club Room: code behind poster ← CHANGE THIS
+  2: ['2232'],    // Stage 3 — Club Room: code behind poster ← CHANGE THIS
 };
 // ═══════════════════════════════════════════════
 // ▲▲▲  END OF ANSWER CONFIG  ▲▲▲
@@ -110,7 +112,7 @@ app.post('/hint', async (req, res) => {
     `Never reveal the full answer on the very first ask.`;
 
   const url =
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
 
   try {
     const geminiRes = await fetch(url, {
@@ -119,7 +121,7 @@ app.post('/hint', async (req, res) => {
       body: JSON.stringify({
         system_instruction: { parts: [{ text: systemPrompt }] },
         contents: [{ role: 'user', parts: [{ text: message }] }],
-        generationConfig: { maxOutputTokens: 200, temperature: 0.7 }
+        generationConfig: { maxOutputTokens: 800, temperature: 0.7 }
       })
     });
 
@@ -145,7 +147,7 @@ app.post('/hint', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`\n  Build & Deploy server running`);
   console.log(`  http://localhost:${PORT}\n`);
-  if (GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY_HERE') {
-    console.log('  ⚠  GEMINI_API_KEY not set — hint bot will not work\n');
+  if (!GEMINI_API_KEY) {
+    console.log('  ⚠  GEMINI_API_KEY not set in .env — hint bot will not work\n');
   }
 });
